@@ -1,0 +1,445 @@
+# Create a complete single-file HTML for the CACX kit, save it, and return a download link.
+from pathlib import Path
+
+html = r"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CACX Kit v0.1 — Culturally Adaptive, Cognitively eXpressive UX</title>
+  <meta name="description" content="Single-file playground demonstrating culturally adaptive, cognitively expressive UX patterns with tokens, i18n, container queries, and accessibility-first design." />
+  <!-- Font Awesome CDN for icons (Free) -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" referrerpolicy="no-referrer">
+  <style>
+    /* =====================
+       CACX Kit v0.1 (Inline)
+       ===================== */
+
+    :root{
+      /* Colors (LCH with graceful fallback in most modern browsers) */
+      --bg: lch(8% 0 0);
+      --panel: lch(17% 3 280);
+      --text: lch(96% 0 0);
+      --muted: lch(78% 8 260);
+      --accent: lch(70% 80 85);
+      --focus: lch(90% 40 85);
+
+      /* Radii / spacing */
+      --radius: 14px;
+      --space-1: .5rem;
+      --space-2: .75rem;
+      --space-3: 1rem;
+      --space-4: 1.5rem;
+      --space-5: 2rem;
+
+      /* Motion */
+      --dur-fast: 120ms;
+      --dur: 200ms;
+      --easing: cubic-bezier(.2,.7,.2,1);
+    }
+
+    @media (prefers-reduced-motion: reduce){
+      :root{ --dur-fast:0ms; --dur:0ms; --easing:linear; }
+    }
+
+    *{ box-sizing: border-box; }
+    html, body{ height:100%; }
+    body{ margin:0; background:var(--bg); color:var(--text); font: 400 16px/1.5 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto; }
+
+    /* App frame */
+    .cacx-app{ min-height:100%; }
+    .shell{ display:grid; gap:var(--space-5); padding:clamp(16px,3vw,56px); max-inline-size:1200px; margin:0 auto; }
+
+    /* Toolbar */
+    .toolbar{ display:flex; flex-wrap:wrap; gap:10px; align-items:center; }
+    .group{ display:flex; gap:4px; background:color-mix(in lch, var(--panel) 92%, white 8%); padding:4px; border-radius:999px; }
+    .group[role="group"] > .label{ display:flex; align-items:center; gap:.5rem; padding:0 .5rem; color:var(--muted); font-weight:600; }
+
+    .toggle{
+      border:0; background:transparent; color:var(--text);
+      padding:.45rem .75rem; border-radius:999px; cursor:pointer;
+      transition: background var(--dur) var(--easing), transform var(--dur-fast) var(--easing);
+      display:inline-flex; align-items:center; gap:.5rem;
+    }
+    .toggle[aria-pressed="true"]{ background: color-mix(in lch, var(--accent) 22%, black 78%); }
+    .toggle:focus-visible{ outline:3px solid var(--focus); outline-offset:2px; }
+
+    /* Communication style mapping */
+    .cacx-app[data-tone="formal"]{ letter-spacing:.1px; }
+    .cacx-app[data-tone="casual"]{ letter-spacing:0; }
+    .cacx-app[data-density="compact"]{ --space-3:.75rem; --space-4:1rem; --space-5:1.25rem; }
+    .cacx-app[data-density="cozy"]{ --space-3:1rem; --space-4:1.5rem; --space-5:2rem; }
+
+    /* Layout grid */
+    .grid{ display:grid; gap:var(--space-5); grid-template-columns:1fr; }
+    @media (min-width: 900px){ .grid{ grid-template-columns: 1.1fr .9fr; } }
+
+    /* Cards and components */
+    .card-shell{ container-type:inline-size; }
+    .card, .stepper, .panel{
+      background: color-mix(in lch, var(--panel) 90%, black 10%);
+      border-radius: var(--radius);
+      padding: var(--space-4);
+      box-shadow: 0 10px 30px rgba(0,0,0,.35);
+    }
+    .card{ display:grid; gap:var(--space-3); transition: transform var(--dur) var(--easing); }
+    .card:hover{ transform: translateY(-2px); }
+    .card h2{ margin:0; font-size: clamp(1.1rem, 1rem + 1vw, 1.6rem); }
+
+    .fields{ list-style:none; margin:0; padding:0; display:grid; gap:.5rem; }
+    .fields .label{ color:var(--muted); }
+
+    /* Container queries: widen field layout when the container is wide enough */
+    @container (min-width: 540px){
+      .fields{ grid-template-columns: repeat(3, 1fr); }
+      .fields li{ display:grid; gap:4px; }
+      .primary{ justify-self:end; }
+    }
+
+    .primary{
+      border:0; border-radius:12px; padding:.7rem 1rem; font-weight:600;
+      background: linear-gradient(180deg,
+        color-mix(in lch, var(--accent) 80%, white 20%),
+        color-mix(in lch, var(--accent) 65%, black 35%));
+      color: lch(18% 0 0);
+      cursor: pointer;
+    }
+    .primary:focus-visible{ outline:3px solid var(--focus); outline-offset:2px; }
+
+    /* Stepper (Guided Mode) */
+    .stepper{ display:grid; gap:var(--space-3); background: color-mix(in lch, var(--panel) 88%, black 12%); }
+    .steps{ display:flex; gap:6px; flex-wrap:wrap; }
+    .chip{ padding:.25rem .5rem; border-radius:999px; background:color-mix(in lch, var(--panel) 80%, white 20%); font: 500 12px/1.4 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, monospace; }
+    .chip.current{ background: color-mix(in lch, var(--accent) 30%, black 70%); color: var(--text); }
+    .row{ display:flex; gap:8px; }
+
+    /* RTL helpers (explicit to avoid surprises) */
+    .rtl .grid{ direction: rtl; }
+    .rtl .toolbar{ direction: rtl; }
+
+    /* Footer */
+    footer{ color:var(--muted); font-size:.9rem; }
+    footer a{ color:inherit; }
+  </style>
+</head>
+<body>
+  <noscript>
+    <div class="panel" style="max-width:50rem;margin:1rem auto;">
+      <strong>JavaScript required.</strong> This demo adapts content, language, and layout via client-side logic.
+    </div>
+  </noscript>
+
+  <main id="app" class="cacx-app" data-tone="casual" data-verbosity="brief" data-density="cozy" data-emoji="minimal" dir="ltr">
+    <div class="shell" role="application" aria-label="CACX Kit Playground">
+      <!-- Toolbar Controls -->
+      <header class="toolbar" role="region" aria-label="Communication style controls">
+        <div class="group" role="group" aria-label="Tone">
+          <span class="label"><i class="fa-solid fa-comments"></i> Tone</span>
+          <button class="toggle" data-set="tone" data-value="casual" aria-pressed="true"><i class="fa-solid fa-face-smile"></i> Casual</button>
+          <button class="toggle" data-set="tone" data-value="formal" aria-pressed="false"><i class="fa-solid fa-scale-balanced"></i> Formal</button>
+        </div>
+
+        <div class="group" role="group" aria-label="Verbosity">
+          <span class="label"><i class="fa-solid fa-align-left"></i> Verbosity</span>
+          <button class="toggle" data-set="verbosity" data-value="brief" aria-pressed="true"><i class="fa-solid fa-bolt"></i> Brief</button>
+          <button class="toggle" data-set="verbosity" data-value="detailed" aria-pressed="false"><i class="fa-solid fa-book-open"></i> Detailed</button>
+        </div>
+
+        <div class="group" role="group" aria-label="Density">
+          <span class="label"><i class="fa-solid fa-layer-group"></i> Density</span>
+          <button class="toggle" data-set="density" data-value="cozy" aria-pressed="true"><i class="fa-solid fa-grip-lines"></i> Cozy</button>
+          <button class="toggle" data-set="density" data-value="compact" aria-pressed="false"><i class="fa-solid fa-grip-lines-vertical"></i> Compact</button>
+        </div>
+
+        <div class="group" role="group" aria-label="Emoji expressiveness">
+          <span class="label"><i class="fa-regular fa-face-smile"></i> Emoji</span>
+          <button class="toggle" data-set="emoji" data-value="off" aria-pressed="false"><i class="fa-regular fa-face-meh"></i> None</button>
+          <button class="toggle" data-set="emoji" data-value="minimal" aria-pressed="true"><i class="fa-regular fa-star"></i> Mini</button>
+          <button class="toggle" data-set="emoji" data-value="full" aria-pressed="false"><i class="fa-solid fa-wand-magic-sparkles"></i> Full</button>
+        </div>
+
+        <div class="group" role="group" aria-label="Language">
+          <span class="label"><i class="fa-solid fa-language"></i> Language</span>
+          <button class="toggle" data-set="locale" data-value="en" aria-pressed="true">English</button>
+          <button class="toggle" data-set="locale" data-value="fr" aria-pressed="false">Français</button>
+          <button class="toggle" data-set="locale" data-value="ar" aria-pressed="false">العربية</button>
+        </div>
+
+        <div class="group" role="group" aria-label="Guided mode">
+          <span class="label"><i class="fa-solid fa-person-walking"></i> Guided</span>
+          <button class="toggle" data-set="guided" data-value="on" aria-pressed="false"><i class="fa-solid fa-toggle-on"></i> On</button>
+          <button class="toggle" data-set="guided" data-value="off" aria-pressed="true"><i class="fa-solid fa-toggle-off"></i> Off</button>
+        </div>
+      </header>
+
+      <!-- Main grid -->
+      <div class="grid">
+        <!-- Adaptive Card -->
+        <section class="card-shell" aria-label="Adaptive card">
+          <article class="card" aria-labelledby="card-title">
+            <h2 id="card-title">Booking summary</h2>
+            <p id="microcopy" aria-live="polite">Tap to confirm.</p>
+            <ul class="fields">
+              <li><span class="label" data-i18n="date_label">Date</span> <span class="value" id="date-value">Sep 12, 2025</span></li>
+              <li><span class="label" data-i18n="time_label">Time</span> <span class="value" id="time-value">10:30 AM</span></li>
+              <li><span class="label" data-i18n="method_label">Method</span> <span class="value" id="method-value">Passkey Sign-in</span></li>
+            </ul>
+            <button class="primary" id="confirm-btn">Confirm</button>
+          </article>
+        </section>
+
+        <!-- Guided Mode Stepper -->
+        <section class="stepper" aria-label="Guided mode stepper" id="stepper-section" hidden>
+          <div class="steps" id="steps" aria-live="polite"></div>
+          <p id="step-content" aria-live="polite"></p>
+          <div class="row">
+            <button class="toggle" id="back-btn"><i class="fa-solid fa-arrow-left"></i> <span data-i18n="back">Back</span></button>
+            <button class="toggle" id="next-btn"><span data-i18n="next">Next</span> <i class="fa-solid fa-arrow-right"></i></button>
+          </div>
+        </section>
+      </div>
+
+      <footer>
+        <p>
+          CACX Kit v0.1 • Honors reduced motion, keyboard navigation, high contrast, RTL layouts, and localized numerals.
+          Icons via Font Awesome (CDN). Ship as is on GitHub Pages.
+        </p>
+      </footer>
+    </div>
+  </main>
+
+  <script>
+    // =====================
+    // i18n microcopy + numerals
+    // =====================
+    const COPY = {
+      title: { en: "Booking summary", fr: "Récapitulatif de réservation", ar: "ملخص الحجز" },
+      hintBrief: { en: "Tap to confirm.", fr: "Appuyez pour confirmer.", ar: "اضغط للتأكيد." },
+      hintDetailed: {
+        en: "Review your details, then confirm. You can edit any field before submission.",
+        fr: "Vérifiez vos informations puis confirmez. Vous pouvez modifier n'importe quel champ avant l'envoi.",
+        ar: "راجع التفاصيل ثم أكد. يمكنك تعديل أي حقل قبل الإرسال."
+      },
+      date: { en: "Date", fr: "Date", ar: "التاريخ" },
+      time: { en: "Time", fr: "Heure", ar: "الوقت" },
+      method: { en: "Method", fr: "Méthode", ar: "الطريقة" },
+      passkey: { en: "Passkey Sign-in", fr: "Connexion par passkey", ar: "تسجيل دخول بمفتاح مرور" },
+      confirm: { en: "Confirm", fr: "Confirmer", ar: "تأكيد" },
+      guided: { en: "Guided mode", fr: "Mode guidé", ar: "الوضع الموجَّه" },
+      next: { en: "Next", fr: "Suivant", ar: "التالي" },
+      back: { en: "Back", fr: "Retour", ar: "رجوع" }
+    };
+
+    const LOCALES = {
+      en: { dir: "ltr", numerals: "latn", label: "English" },
+      fr: { dir: "ltr", numerals: "latn", label: "Français" },
+      ar: { dir: "rtl", numerals: "arabext", label: "العربية" }
+    };
+
+    function toArabicIndic(str){ return String(str).replace(/[0-9]/g, d => "٠١٢٣٤٥٦٧٨٩"[Number(d)]); }
+    function fmtNum(n, numerals){ return numerals === "arabext" ? toArabicIndic(n) : String(n); }
+
+    // Fixed demo date/time
+    const demoDate = new Date(2025, 8, 12, 10, 30); // Sept 12, 2025 10:30
+
+    // =====================
+    // State & persistence
+    // =====================
+    const app = document.getElementById("app");
+    const toggles = Array.from(document.querySelectorAll(".toggle"));
+
+    const state = {
+      tone: getPref("tone", "casual"),
+      verbosity: getPref("verbosity", "brief"),
+      density: getPref("density", "cozy"),
+      emoji: getPref("emoji", "minimal"),
+      locale: getPref("locale", "en"),
+      guided: getPref("guided", "off")
+    };
+
+    applyStateToDOM();
+
+    // Toggle interactions
+    toggles.forEach(btn => {
+      btn.addEventListener("click", () => {
+        const key = btn.dataset.set;
+        const value = btn.dataset.value;
+
+        if(key === "guided"){
+          setPref("guided", value);
+          state.guided = value;
+          reflectPressed("guided", value);
+          updateGuidedVisibility();
+          return;
+        }
+
+        setPref(key, value);
+        state[key] = value;
+        reflectPressed(key, value);
+
+        if(key === "locale"){
+          applyLocale();
+        }
+        updateUI();
+      });
+    });
+
+    // Initialize pressed states & locale
+    ["tone","verbosity","density","emoji","locale","guided"].forEach(k => reflectPressed(k, state[k]));
+    applyLocale();
+    updateGuidedVisibility();
+    updateUI();
+
+    // =====================
+    // UI update pipeline
+    // =====================
+    function applyStateToDOM(){
+      app.dataset.tone = state.tone;
+      app.dataset.verbosity = state.verbosity;
+      app.dataset.density = state.density;
+      app.dataset.emoji = state.emoji;
+    }
+
+    function applyLocale(){
+      const { dir } = LOCALES[state.locale];
+      document.documentElement.lang = state.locale;
+      app.setAttribute("dir", dir);
+      app.classList.toggle("rtl", dir === "rtl");
+    }
+
+    function updateUI(){
+      applyStateToDOM();
+
+      const { numerals } = LOCALES[state.locale];
+      const t = (k) => COPY[k]?.[state.locale] ?? k;
+
+      // Title & labels
+      document.getElementById("card-title").textContent = t("title");
+      document.querySelector('[data-i18n="date_label"]').textContent = t("date");
+      document.querySelector('[data-i18n="time_label"]').textContent = t("time");
+      document.querySelector('[data-i18n="method_label"]').textContent = t("method");
+      document.getElementById("confirm-btn").textContent = t("confirm");
+
+      // Microcopy with verbosity + emoji
+      const micro = document.getElementById("microcopy");
+      micro.textContent = state.verbosity === "detailed" ? t("hintDetailed") : t("hintBrief");
+      if(state.emoji !== "off"){
+        micro.textContent += state.emoji === "full" ? " ✨✅" : " ✨";
+      }
+
+      // Date/time formatting per locale
+      const dateLabel = demoDate.toLocaleDateString(state.locale, { year:"numeric", month:"short", day:"numeric" });
+      const timeLabel = demoDate.toLocaleTimeString(state.locale, { hour:"numeric", minute:"2-digit" });
+      document.getElementById("date-value").textContent = numerals === "arabext" ? toArabicIndic(dateLabel) : dateLabel;
+      document.getElementById("time-value").textContent = numerals === "arabext" ? toArabicIndic(timeLabel) : timeLabel;
+      document.getElementById("method-value").textContent = t("passkey");
+
+      // Update stepper labels (Next/Back)
+      document.querySelectorAll('[data-i18n="next"]').forEach(n => n.textContent = t("next"));
+      document.querySelectorAll('[data-i18n="back"]').forEach(n => n.textContent = t("back"));
+      renderSteps();
+    }
+
+    // =====================
+    // Guided mode stepper
+    // =====================
+    let currentStep = 1;
+    const maxStep = 3;
+    const stepperSection = document.getElementById("stepper-section");
+    const stepsEl = document.getElementById("steps");
+    const stepContent = document.getElementById("step-content");
+
+    function updateGuidedVisibility(){
+      const visible = state.guided === "on";
+      stepperSection.hidden = !visible;
+      if(visible){ renderSteps(); }
+    }
+
+    document.getElementById("back-btn").addEventListener("click", () => {
+      currentStep = Math.max(1, currentStep - 1);
+      renderSteps();
+    });
+    document.getElementById("next-btn").addEventListener("click", () => {
+      currentStep = Math.min(maxStep, currentStep + 1);
+      renderSteps();
+    });
+
+    function renderSteps(){
+      const { numerals } = LOCALES[state.locale];
+      const t = (k) => COPY[k]?.[state.locale] ?? k;
+
+      // Chips
+      stepsEl.innerHTML = "";
+      for(let i=1;i<=maxStep;i++){
+        const span = document.createElement("span");
+        span.className = "chip" + (i===currentStep ? " current" : "");
+        span.textContent = (state.locale === "fr" ? "Étape " : state.locale === "ar" ? "الخطوة " : "Step ") + fmtNum(i, numerals);
+        stepsEl.appendChild(span);
+      }
+
+      // Content per step
+      let msg;
+      if(currentStep === 1){
+        msg = {
+          en: "Welcome! In guided mode, we chunk tasks into small steps and show only what's needed.",
+          fr: "Bienvenue ! En mode guidé, nous divisons les tâches en petites étapes et n'affichons que l'essentiel.",
+          ar: "مرحبًا! في الوضع الموجَّه، نقسم المهام إلى خطوات صغيرة ونُظهر ما تحتاجه فقط."
+        }[state.locale];
+      } else if(currentStep === 2){
+        msg = {
+          en: "We adapt density for comfort vs. speed and let you choose tone and verbosity.",
+          fr: "Nous adaptons la densité pour le confort ou la rapidité et vous laissons choisir le ton et le niveau de détails.",
+          ar: "نُكيّف الكثافة حسب الراحة أو السرعة ونمنحك خيار النبرة ومستوى التفصيل."
+        }[state.locale];
+      } else {
+        const demo = demoLocalizedExample(state.locale, numerals);
+        msg = {
+          en: `Locales change direction and numerals. Example: ${demo}.`,
+          fr: `Les langues changent la direction et les chiffres. Exemple : ${demo}.`,
+          ar: `تُغيّر اللغات الاتجاه والأرقام. مثال: ${demo}.`
+        }[state.locale];
+      }
+      stepContent.textContent = msg;
+    }
+
+    function demoLocalizedExample(locale, numerals){
+      const date = new Date(2025, 10, 9, 14, 5); // Nov 9, 2025 14:05
+      const d = date.toLocaleDateString(locale, { year:"numeric", month:"long", day:"numeric" });
+      const t = date.toLocaleTimeString(locale, { hour:"2-digit", minute:"2-digit" });
+      const val = `${d} — ${t}`;
+      return numerals === "arabext" ? toArabicIndic(val) : val;
+    }
+
+    // =====================
+    // localStorage helpers
+    // =====================
+    function getPref(key, fallback){
+      try{
+        const v = localStorage.getItem(`cacx:${key}`);
+        return v !== null ? v : fallback;
+      }catch(e){ return fallback; }
+    }
+    function setPref(key, value){
+      try{ localStorage.setItem(`cacx:${key}`, value); }catch(e){ /* ignore */ }
+    }
+    function reflectPressed(key, value){
+      document.querySelectorAll(`.toggle[data-set="${key}"]`).forEach(btn => {
+        btn.setAttribute("aria-pressed", String(btn.dataset.value === value));
+      });
+    }
+
+    // Demo confirm button
+    document.getElementById("confirm-btn").addEventListener("click", () => {
+      const t = (k) => COPY[k]?.[state.locale] ?? k;
+      alert(t("confirm"));
+    });
+  </script>
+</body>
+</html>
+"""
+
+out_path = Path("/mnt/data/cacx-kit-v0.1.html")
+out_path.write_text(html, encoding="utf-8")
+out_path.as_posix()
+Result
+'/mnt/data/cacx-kit-v0.1.html'
