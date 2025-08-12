@@ -1,20 +1,26 @@
-html = r"""
-<!DOCTYPE html>
+root = Path("/mnt/data")
+index_path = root / "index.html"
+html = index_path.read_text(encoding="utf-8")
+
+# Build a new HTML with locales: en, es, fr, ja, zh and vertical writing toggle for ja/zh
+new_html = """<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>CACX Kit v0.1 — Culturally Adaptive, Cognitively eXpressive UX</title>
-  <meta name="description" content="Single-file playground demonstrating culturally adaptive, cognitively expressive UX patterns with tokens, i18n, container queries, and accessibility-first design." />
-  <!-- Font Awesome CDN for icons (Free) -->
+  <title>CACX Kit v0.2 — Culturally Adaptive, Cognitively eXpressive UX</title>
+  <meta name="description" content="Single-file playground demonstrating culturally adaptive, cognitively expressive UX with i18n (EN/ES/FR/JA/ZH), optional vertical writing, container queries, and accessibility-first design." />
+  <!-- Font Awesome (icons) -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" referrerpolicy="no-referrer">
+  <!-- Region-friendly fonts (optional): Noto Sans JP/SC via Google Fonts -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600&family=Noto+Sans+SC:wght@400;600&display=swap">
   <style>
     /* =====================
-       CACX Kit v0.1 (Inline)
+       CACX Kit v0.2 (Inline)
        ===================== */
 
     :root{
-      /* Colors (LCH with graceful fallback in most modern browsers) */
+      /* Colors */
       --bg: lch(8% 0 0);
       --panel: lch(17% 3 280);
       --text: lch(96% 0 0);
@@ -42,7 +48,15 @@ html = r"""
 
     *{ box-sizing: border-box; }
     html, body{ height:100%; }
-    body{ margin:0; background:var(--bg); color:var(--text); font: 400 16px/1.5 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto; }
+    body{
+      margin:0; background:var(--bg); color:var(--text);
+      font: 400 16px/1.5 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto;
+    }
+
+    /* Locale-specific font stacks */
+    .locale-ja{ font-family: "Noto Sans JP", "Hiragino Kaku Gothic ProN", "Meiryo", system-ui, sans-serif; }
+    .locale-zh{ font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei UI", system-ui, sans-serif; }
+    .locale-es, .locale-fr, .locale-en{ font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, sans-serif; }
 
     /* App frame */
     .cacx-app{ min-height:100%; }
@@ -61,6 +75,7 @@ html = r"""
     }
     .toggle[aria-pressed="true"]{ background: color-mix(in lch, var(--accent) 22%, black 78%); }
     .toggle:focus-visible{ outline:3px solid var(--focus); outline-offset:2px; }
+    .toggle[disabled]{ opacity:.5; cursor:not-allowed; }
 
     /* Communication style mapping */
     .cacx-app[data-tone="formal"]{ letter-spacing:.1px; }
@@ -111,9 +126,19 @@ html = r"""
     .chip.current{ background: color-mix(in lch, var(--accent) 30%, black 70%); color: var(--text); }
     .row{ display:flex; gap:8px; }
 
-    /* RTL helpers (explicit to avoid surprises) */
+    /* RTL helpers */
     .rtl .grid{ direction: rtl; }
     .rtl .toolbar{ direction: rtl; }
+
+    /* Optional: Vertical writing demo scope (JA/ZH) */
+    .vwrite .card h2,
+    .vwrite .card p,
+    .vwrite .card .fields,
+    .vwrite #step-content {
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+    }
+    .vwrite .fields{ gap: 1rem; } /* breathing room in vertical flow */
 
     /* Footer */
     footer{ color:var(--muted); font-size:.9rem; }
@@ -127,46 +152,54 @@ html = r"""
     </div>
   </noscript>
 
-  <main id="app" class="cacx-app" data-tone="casual" data-verbosity="brief" data-density="cozy" data-emoji="minimal" dir="ltr">
+  <main id="app" class="cacx-app locale-en" data-tone="casual" data-verbosity="brief" data-density="cozy" data-emoji="minimal" dir="ltr">
     <div class="shell" role="application" aria-label="CACX Kit Playground">
       <!-- Toolbar Controls -->
       <header class="toolbar" role="region" aria-label="Communication style controls">
         <div class="group" role="group" aria-label="Tone">
-          <span class="label"><i class="fa-solid fa-comments"></i> Tone</span>
-          <button class="toggle" data-set="tone" data-value="casual" aria-pressed="true"><i class="fa-solid fa-face-smile"></i> Casual</button>
-          <button class="toggle" data-set="tone" data-value="formal" aria-pressed="false"><i class="fa-solid fa-scale-balanced"></i> Formal</button>
+          <span class="label"><i class="fa-solid fa-comments"></i> <span data-i18n="tone">Tone</span></span>
+          <button class="toggle" data-set="tone" data-value="casual" aria-pressed="true"><i class="fa-solid fa-face-smile"></i> <span data-i18n="casual">Casual</span></button>
+          <button class="toggle" data-set="tone" data-value="formal" aria-pressed="false"><i class="fa-solid fa-scale-balanced"></i> <span data-i18n="formal">Formal</span></button>
         </div>
 
         <div class="group" role="group" aria-label="Verbosity">
-          <span class="label"><i class="fa-solid fa-align-left"></i> Verbosity</span>
-          <button class="toggle" data-set="verbosity" data-value="brief" aria-pressed="true"><i class="fa-solid fa-bolt"></i> Brief</button>
-          <button class="toggle" data-set="verbosity" data-value="detailed" aria-pressed="false"><i class="fa-solid fa-book-open"></i> Detailed</button>
+          <span class="label"><i class="fa-solid fa-align-left"></i> <span data-i18n="verbosity">Verbosity</span></span>
+          <button class="toggle" data-set="verbosity" data-value="brief" aria-pressed="true"><i class="fa-solid fa-bolt"></i> <span data-i18n="brief">Brief</span></button>
+          <button class="toggle" data-set="verbosity" data-value="detailed" aria-pressed="false"><i class="fa-solid fa-book-open"></i> <span data-i18n="detailed">Detailed</span></button>
         </div>
 
         <div class="group" role="group" aria-label="Density">
-          <span class="label"><i class="fa-solid fa-layer-group"></i> Density</span>
-          <button class="toggle" data-set="density" data-value="cozy" aria-pressed="true"><i class="fa-solid fa-grip-lines"></i> Cozy</button>
-          <button class="toggle" data-set="density" data-value="compact" aria-pressed="false"><i class="fa-solid fa-grip-lines-vertical"></i> Compact</button>
+          <span class="label"><i class="fa-solid fa-layer-group"></i> <span data-i18n="density">Density</span></span>
+          <button class="toggle" data-set="density" data-value="cozy" aria-pressed="true"><i class="fa-solid fa-grip-lines"></i> <span data-i18n="cozy">Cozy</span></button>
+          <button class="toggle" data-set="density" data-value="compact" aria-pressed="false"><i class="fa-solid fa-grip-lines-vertical"></i> <span data-i18n="compact">Compact</span></button>
         </div>
 
         <div class="group" role="group" aria-label="Emoji expressiveness">
-          <span class="label"><i class="fa-regular fa-face-smile"></i> Emoji</span>
-          <button class="toggle" data-set="emoji" data-value="off" aria-pressed="false"><i class="fa-regular fa-face-meh"></i> None</button>
-          <button class="toggle" data-set="emoji" data-value="minimal" aria-pressed="true"><i class="fa-regular fa-star"></i> Mini</button>
-          <button class="toggle" data-set="emoji" data-value="full" aria-pressed="false"><i class="fa-solid fa-wand-magic-sparkles"></i> Full</button>
+          <span class="label"><i class="fa-regular fa-face-smile"></i> <span data-i18n="emoji">Emoji</span></span>
+          <button class="toggle" data-set="emoji" data-value="off" aria-pressed="false"><i class="fa-regular fa-face-meh"></i> <span data-i18n="none">None</span></button>
+          <button class="toggle" data-set="emoji" data-value="minimal" aria-pressed="true"><i class="fa-regular fa-star"></i> <span data-i18n="mini">Mini</span></button>
+          <button class="toggle" data-set="emoji" data-value="full" aria-pressed="false"><i class="fa-solid fa-wand-magic-sparkles"></i> <span data-i18n="full">Full</span></button>
         </div>
 
         <div class="group" role="group" aria-label="Language">
-          <span class="label"><i class="fa-solid fa-language"></i> Language</span>
+          <span class="label"><i class="fa-solid fa-language"></i> <span data-i18n="language">Language</span></span>
           <button class="toggle" data-set="locale" data-value="en" aria-pressed="true">English</button>
+          <button class="toggle" data-set="locale" data-value="es" aria-pressed="false">Español</button>
           <button class="toggle" data-set="locale" data-value="fr" aria-pressed="false">Français</button>
-          <button class="toggle" data-set="locale" data-value="ar" aria-pressed="false">العربية</button>
+          <button class="toggle" data-set="locale" data-value="ja" aria-pressed="false">日本語</button>
+          <button class="toggle" data-set="locale" data-value="zh" aria-pressed="false">中文</button>
         </div>
 
         <div class="group" role="group" aria-label="Guided mode">
-          <span class="label"><i class="fa-solid fa-person-walking"></i> Guided</span>
-          <button class="toggle" data-set="guided" data-value="on" aria-pressed="false"><i class="fa-solid fa-toggle-on"></i> On</button>
-          <button class="toggle" data-set="guided" data-value="off" aria-pressed="true"><i class="fa-solid fa-toggle-off"></i> Off</button>
+          <span class="label"><i class="fa-solid fa-person-walking"></i> <span data-i18n="guided">Guided</span></span>
+          <button class="toggle" data-set="guided" data-value="on" aria-pressed="false"><i class="fa-solid fa-toggle-on"></i> <span data-i18n="on">On</span></button>
+          <button class="toggle" data-set="guided" data-value="off" aria-pressed="true"><i class="fa-solid fa-toggle-off"></i> <span data-i18n="off">Off</span></button>
+        </div>
+
+        <div id="writing-group" class="group" role="group" aria-label="Writing mode" hidden>
+          <span class="label"><i class="fa-solid fa-text-width"></i> <span data-i18n="writing">Writing</span></span>
+          <button class="toggle" data-set="writing" data-value="horizontal" aria-pressed="true"><i class="fa-solid fa-arrows-left-right"></i> <span data-i18n="horizontal">Horizontal</span></button>
+          <button class="toggle" data-set="writing" data-value="vertical" aria-pressed="false"><i class="fa-solid fa-arrows-up-down"></i> <span data-i18n="vertical">Vertical</span></button>
         </div>
       </header>
 
@@ -199,8 +232,7 @@ html = r"""
 
       <footer>
         <p>
-          CACX Kit v0.1 • Honors reduced motion, keyboard navigation, high contrast, RTL layouts, and localized numerals.
-          Icons via Font Awesome (CDN). Ship as is on GitHub Pages.
+          CACX Kit v0.2 • EN/ES/FR/JA/ZH • Optional vertical writing for JA/ZH • High contrast • Strong focus • RTL/vertical aware • Localized numerals where applicable.
         </p>
       </footer>
     </div>
@@ -211,31 +243,75 @@ html = r"""
     // i18n microcopy + numerals
     // =====================
     const COPY = {
-      title: { en: "Booking summary", fr: "Récapitulatif de réservation", ar: "ملخص الحجز" },
-      hintBrief: { en: "Tap to confirm.", fr: "Appuyez pour confirmer.", ar: "اضغط للتأكيد." },
+      // UI chrome
+      tone: { en:"Tone", es:"Tono", fr:"Ton", ja:"文体", zh:"语气" },
+      casual: { en:"Casual", es:"Informal", fr:"Décontracté", ja:"カジュアル", zh:"随意" },
+      formal: { en:"Formal", es:"Formal", fr:"Formel", ja:"フォーマル", zh:"正式" },
+      verbosity: { en:"Verbosity", es:"Nivel de detalle", fr:"Niveau de détail", ja:"詳細度", zh:"详细程度" },
+      brief: { en:"Breve", es:"Breve", fr:"Bref", ja:"簡潔", zh:"简洁" },
+      detailed: { en:"Detailed", es:"Detallado", fr:"Détaillé", ja:"詳細", zh:"详细" },
+      density: { en:"Density", es:"Densidad", fr:"Densité", ja:"密度", zh:"密度" },
+      cozy: { en:"Cozy", es:"Cómodo", fr:"Aéré", ja:"ゆったり", zh:"舒适" },
+      compact: { en:"Compact", es:"Compacto", fr:"Compact", ja:"コンパクト", zh:"紧凑" },
+      emoji: { en:"Emoji", es:"Emoji", fr:"Emoji", ja:"絵文字", zh:"表情符号" },
+      none: { en:"None", es:"Ninguno", fr:"Aucun", ja:"なし", zh:"无" },
+      mini: { en:"Mini", es:"Mínimo", fr:"Mini", ja:"控えめ", zh:"少量" },
+      full: { en:"Full", es:"Completo", fr:"Complet", ja:"多め", zh:"丰富" },
+      language: { en:"Language", es:"Idioma", fr:"Langue", ja:"言語", zh:"语言" },
+      guided: { en:"Guided", es:"Guiado", fr:"Guidé", ja:"ガイド付き", zh:"引导" },
+      on: { en:"On", es:"Activado", fr:"Activé", ja:"オン", zh:"开启" },
+      off: { en:"Off", es:"Desactivado", fr:"Désactivé", ja:"オフ", zh:"关闭" },
+      writing: { en:"Writing", es:"Escritura", fr:"Écriture", ja:"書字方向", zh:"书写方向" },
+      horizontal: { en:"Horizontal", es:"Horizontal", fr:"Horizontale", ja:"横書き", zh:"横排" },
+      vertical: { en:"Vertical", es:"Vertical", fr:"Verticale", ja:"縦書き", zh:"竖排" },
+
+      // Content
+      title: {
+        en: "Booking summary",
+        es: "Resumen de la reserva",
+        fr: "Récapitulatif de réservation",
+        ja: "予約概要",
+        zh: "预订摘要"
+      },
+      hintBrief: {
+        en: "Tap to confirm.",
+        es: "Toca para confirmar.",
+        fr: "Appuyez pour confirmer.",
+        ja: "タップして確認",
+        zh: "点按以确认。"
+      },
       hintDetailed: {
         en: "Review your details, then confirm. You can edit any field before submission.",
+        es: "Revisa tus datos y confirma. Puedes editar cualquier campo antes de enviar.",
         fr: "Vérifiez vos informations puis confirmez. Vous pouvez modifier n'importe quel champ avant l'envoi.",
-        ar: "راجع التفاصيل ثم أكد. يمكنك تعديل أي حقل قبل الإرسال."
+        ja: "詳細を確認してから確定してください。送信前に各項目を編集できます。",
+        zh: "请先检查详情，然后确认。提交前可修改任何字段。"
       },
-      date: { en: "Date", fr: "Date", ar: "التاريخ" },
-      time: { en: "Time", fr: "Heure", ar: "الوقت" },
-      method: { en: "Method", fr: "Méthode", ar: "الطريقة" },
-      passkey: { en: "Passkey Sign-in", fr: "Connexion par passkey", ar: "تسجيل دخول بمفتاح مرور" },
-      confirm: { en: "Confirm", fr: "Confirmer", ar: "تأكيد" },
-      guided: { en: "Guided mode", fr: "Mode guidé", ar: "الوضع الموجَّه" },
-      next: { en: "Next", fr: "Suivant", ar: "التالي" },
-      back: { en: "Back", fr: "Retour", ar: "رجوع" }
+      date: { en:"Date", es:"Fecha", fr:"Date", ja:"日付", zh:"日期" },
+      time: { en:"Time", es:"Hora", fr:"Heure", ja:"時刻", zh:"时间" },
+      method: { en:"Method", es:"Método", fr:"Méthode", ja:"方法", zh:"方式" },
+      passkey: {
+        en:"Passkey Sign-in",
+        es:"Inicio de sesión con llave de acceso",
+        fr:"Connexion par clé d'accès",
+        ja:"パスキーでサインイン",
+        zh:"使用通行密钥登录"
+      },
+      confirm: { en:"Confirm", es:"Confirmar", fr:"Confirmer", ja:"確定", zh:"确认" },
+      next: { en:"Next", es:"Siguiente", fr:"Suivant", ja:"次へ", zh:"下一步" },
+      back: { en:"Back", es:"Atrás", fr:"Retour", ja:"戻る", zh:"返回" }
     };
 
     const LOCALES = {
-      en: { dir: "ltr", numerals: "latn", label: "English" },
-      fr: { dir: "ltr", numerals: "latn", label: "Français" },
-      ar: { dir: "rtl", numerals: "arabext", label: "العربية" }
+      en: { dir: "ltr", numerals: "latn", label: "English", class: "locale-en", allowVertical: false },
+      es: { dir: "ltr", numerals: "latn", label: "Español", class: "locale-es", allowVertical: false },
+      fr: { dir: "ltr", numerals: "latn", label: "Français", class: "locale-fr", allowVertical: false },
+      ja: { dir: "ltr", numerals: "latn", label: "日本語", class: "locale-ja", allowVertical: true },
+      zh: { dir: "ltr", numerals: "latn", label: "中文", class: "locale-zh", allowVertical: true }
     };
 
-    function toArabicIndic(str){ return String(str).replace(/[0-9]/g, d => "٠١٢٣٤٥٦٧٨٩"[Number(d)]); }
-    function fmtNum(n, numerals){ return numerals === "arabext" ? toArabicIndic(n) : String(n); }
+    function toArabicIndic(str){ return String(str).replace(/[0-9]/g, d => "٠١٢٣٤٥٦٧٨٩"[Number(d)]); } // not used here but kept as example
+    function fmtNum(n, numerals){ return String(n); }
 
     // Fixed demo date/time
     const demoDate = new Date(2025, 8, 12, 10, 30); // Sept 12, 2025 10:30
@@ -245,6 +321,7 @@ html = r"""
     // =====================
     const app = document.getElementById("app");
     const toggles = Array.from(document.querySelectorAll(".toggle"));
+    const writingGroup = document.getElementById("writing-group");
 
     const state = {
       tone: getPref("tone", "casual"),
@@ -252,7 +329,8 @@ html = r"""
       density: getPref("density", "cozy"),
       emoji: getPref("emoji", "minimal"),
       locale: getPref("locale", "en"),
-      guided: getPref("guided", "off")
+      guided: getPref("guided", "off"),
+      writing: getPref("writing", "horizontal")
     };
 
     applyStateToDOM();
@@ -271,26 +349,44 @@ html = r"""
           return;
         }
 
+        if(key === "writing"){
+          setPref("writing", value);
+          state.writing = value;
+          reflectPressed("writing", value);
+          applyWritingMode();
+          return;
+        }
+
+        if(key === "locale"){
+          setPref("locale", value);
+          state.locale = value;
+          reflectPressed("locale", value);
+          applyLocale();
+          updateUI();
+          return;
+        }
+
         setPref(key, value);
         state[key] = value;
         reflectPressed(key, value);
-
-        if(key === "locale"){
-          applyLocale();
-        }
         updateUI();
       });
     });
 
     // Initialize pressed states & locale
-    ["tone","verbosity","density","emoji","locale","guided"].forEach(k => reflectPressed(k, state[k]));
+    ["tone","verbosity","density","emoji","locale","guided","writing"].forEach(k => reflectPressed(k, state[k]));
     applyLocale();
+    applyWritingMode();
     updateGuidedVisibility();
     updateUI();
 
     // =====================
     // UI update pipeline
     // =====================
+    function t(key){
+      return COPY[key]?.[state.locale] ?? key;
+    }
+
     function applyStateToDOM(){
       app.dataset.tone = state.tone;
       app.dataset.verbosity = state.verbosity;
@@ -299,17 +395,38 @@ html = r"""
     }
 
     function applyLocale(){
-      const { dir } = LOCALES[state.locale];
+      const { dir, class: klass, allowVertical } = LOCALES[state.locale];
       document.documentElement.lang = state.locale;
       app.setAttribute("dir", dir);
-      app.classList.toggle("rtl", dir === "rtl");
+
+      // swap locale class
+      app.classList.remove("locale-en","locale-es","locale-fr","locale-ja","locale-zh");
+      app.classList.add(klass);
+
+      // Update static UI labels
+      document.querySelectorAll("[data-i18n]").forEach(el => {
+        const key = el.getAttribute("data-i18n");
+        if(COPY[key] && COPY[key][state.locale]) el.textContent = COPY[key][state.locale];
+      });
+
+      // Writing toggle visibility (JA/ZH only)
+      writingGroup.hidden = !allowVertical;
+      if(!allowVertical){
+        state.writing = "horizontal";
+        setPref("writing","horizontal");
+        reflectPressed("writing","horizontal");
+        app.classList.remove("vwrite");
+      }
+    }
+
+    function applyWritingMode(){
+      if(LOCALES[state.locale].allowVertical){
+        app.classList.toggle("vwrite", state.writing === "vertical");
+      }
     }
 
     function updateUI(){
       applyStateToDOM();
-
-      const { numerals } = LOCALES[state.locale];
-      const t = (k) => COPY[k]?.[state.locale] ?? k;
 
       // Title & labels
       document.getElementById("card-title").textContent = t("title");
@@ -328,13 +445,14 @@ html = r"""
       // Date/time formatting per locale
       const dateLabel = demoDate.toLocaleDateString(state.locale, { year:"numeric", month:"short", day:"numeric" });
       const timeLabel = demoDate.toLocaleTimeString(state.locale, { hour:"numeric", minute:"2-digit" });
-      document.getElementById("date-value").textContent = numerals === "arabext" ? toArabicIndic(dateLabel) : dateLabel;
-      document.getElementById("time-value").textContent = numerals === "arabext" ? toArabicIndic(timeLabel) : timeLabel;
+      document.getElementById("date-value").textContent = dateLabel;
+      document.getElementById("time-value").textContent = timeLabel;
       document.getElementById("method-value").textContent = t("passkey");
 
-      // Update stepper labels (Next/Back)
+      // Stepper buttons
       document.querySelectorAll('[data-i18n="next"]').forEach(n => n.textContent = t("next"));
       document.querySelectorAll('[data-i18n="back"]').forEach(n => n.textContent = t("back"));
+
       renderSteps();
     }
 
@@ -363,15 +481,16 @@ html = r"""
     });
 
     function renderSteps(){
-      const { numerals } = LOCALES[state.locale];
-      const t = (k) => COPY[k]?.[state.locale] ?? k;
+      const labelStep = {
+        en: "Step ", es: "Paso ", fr:"Étape ", ja:"ステップ ", zh:"步骤 "
+      }[state.locale] || "Step ";
 
       // Chips
       stepsEl.innerHTML = "";
       for(let i=1;i<=maxStep;i++){
         const span = document.createElement("span");
         span.className = "chip" + (i===currentStep ? " current" : "");
-        span.textContent = (state.locale === "fr" ? "Étape " : state.locale === "ar" ? "الخطوة " : "Step ") + fmtNum(i, numerals);
+        span.textContent = labelStep + i;
         stepsEl.appendChild(span);
       }
 
@@ -380,32 +499,37 @@ html = r"""
       if(currentStep === 1){
         msg = {
           en: "Welcome! In guided mode, we chunk tasks into small steps and show only what's needed.",
+          es: "¡Bienvenida! En modo guiado, dividimos las tareas en pasos pequeños y mostramos solo lo necesario.",
           fr: "Bienvenue ! En mode guidé, nous divisons les tâches en petites étapes et n'affichons que l'essentiel.",
-          ar: "مرحبًا! في الوضع الموجَّه، نقسم المهام إلى خطوات صغيرة ونُظهر ما تحتاجه فقط."
+          ja: "ようこそ！ガイド付きモードでは、作業を小さなステップに分け、必要な情報だけを表示します。",
+          zh: "欢迎！在引导模式下，我们将任务拆分为小步骤，只显示必要的信息。"
         }[state.locale];
       } else if(currentStep === 2){
         msg = {
           en: "We adapt density for comfort vs. speed and let you choose tone and verbosity.",
-          fr: "Nous adaptons la densité pour le confort ou la rapidité et vous laissons choisir le ton et le niveau de détails.",
-          ar: "نُكيّف الكثافة حسب الراحة أو السرعة ونمنحك خيار النبرة ومستوى التفصيل."
+          es: "Adaptamos la densidad para comodidad o rapidez y te dejamos elegir tono y nivel de detalle.",
+          fr: "Nous adaptons la densité pour le confort ou la rapidité et vous laissez choisir le ton et le niveau de détail.",
+          ja: "快適さと速度のバランスに合わせて密度を調整し、文体と詳細度を選べます。",
+          zh: "我们在舒适与速度之间调整信息密度，并允许你选择语气与详细程度。"
         }[state.locale];
       } else {
-        const demo = demoLocalizedExample(state.locale, numerals);
+        const demo = demoLocalizedExample(state.locale);
         msg = {
-          en: `Locales change direction and numerals. Example: ${demo}.`,
-          fr: `Les langues changent la direction et les chiffres. Exemple : ${demo}.`,
-          ar: `تُغيّر اللغات الاتجاه والأرقام. مثال: ${demo}.`
+          en: `Locales can also influence writing direction. Example: ${demo}.`,
+          es: `Los idiomas también pueden influir en la dirección del texto. Ejemplo: ${demo}。`,
+          fr: `Les langues peuvent aussi influencer le sens d'écriture. Exemple : ${demo}.`,
+          ja: `言語によっては書字方向も変わります。例：${demo}。`,
+          zh: `不同语言也会影响书写方向。示例：${demo}。`
         }[state.locale];
       }
       stepContent.textContent = msg;
     }
 
-    function demoLocalizedExample(locale, numerals){
-      const date = new Date(2025, 10, 9, 14, 5); // Nov 9, 2025 14:05
+    function demoLocalizedExample(locale){
+      const date = new Date(2025, 10, 9, 14, 5);
       const d = date.toLocaleDateString(locale, { year:"numeric", month:"long", day:"numeric" });
       const t = date.toLocaleTimeString(locale, { hour:"2-digit", minute:"2-digit" });
-      const val = `${d} — ${t}`;
-      return numerals === "arabext" ? toArabicIndic(val) : val;
+      return `${d} — ${t}`;
     }
 
     // =====================
@@ -428,7 +552,6 @@ html = r"""
 
     // Demo confirm button
     document.getElementById("confirm-btn").addEventListener("click", () => {
-      const t = (k) => COPY[k]?.[state.locale] ?? k;
       alert(t("confirm"));
     });
   </script>
@@ -436,7 +559,5 @@ html = r"""
 </html>
 """
 
-out_path = Path("/mnt/data/cacx-kit-v0.1.html")
-out_path.write_text(html, encoding="utf-8")
-out_path.as_posix()
+index_path.write_text(new_html, encoding="utf-8")
 
