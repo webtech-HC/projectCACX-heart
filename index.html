@@ -1,7 +1,5 @@
-# Create a complete single-file HTML for the CACX kit, save it, and return a download link.
-from pathlib import Path
-
-html = r"""<!DOCTYPE html>
+html = r"""
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
@@ -441,5 +439,4 @@ html = r"""<!DOCTYPE html>
 out_path = Path("/mnt/data/cacx-kit-v0.1.html")
 out_path.write_text(html, encoding="utf-8")
 out_path.as_posix()
-Result
-'/mnt/data/cacx-kit-v0.1.html'
+
