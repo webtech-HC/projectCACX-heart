@@ -1,28 +1,24 @@
-root = Path("/mnt/data")
-index_path = root / "index.html"
-html = index_path.read_text(encoding="utf-8")
-
-# Build a new HTML with locales: en, es, fr, ja, zh and vertical writing toggle for ja/zh
-new_html = """<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>CACX Kit v0.2 — Culturally Adaptive, Cognitively eXpressive UX</title>
-  <meta name="description" content="Single-file playground demonstrating culturally adaptive, cognitively expressive UX with i18n (EN/ES/FR/JA/ZH), optional vertical writing, container queries, and accessibility-first design." />
+  <title>CACX Kit v0.3 — Culturally Adaptive, Cognitively eXpressive UX</title>
+  <meta name="description" content="Accessibility-first playground with i18n (EN/ES/FR/JA/ZH), optional vertical writing, and disability-first features: readable text, numbers-friendly, high contrast, larger targets, tint overlay, live regions, skip link, dwell-to-activate demo." />
   <!-- Font Awesome (icons) -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" referrerpolicy="no-referrer">
   <!-- Region-friendly fonts (optional): Noto Sans JP/SC via Google Fonts -->
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600&family=Noto+Sans+SC:wght@400;600&display=swap">
   <style>
     /* =====================
-       CACX Kit v0.2 (Inline)
+       CACX Kit v0.3 (Inline)
        ===================== */
 
     :root{
       /* Colors */
       --bg: lch(8% 0 0);
       --panel: lch(17% 3 280);
+      --panel-strong: lch(12% 2 280);
       --text: lch(96% 0 0);
       --muted: lch(78% 8 260);
       --accent: lch(70% 80 85);
@@ -40,6 +36,12 @@ new_html = """<!DOCTYPE html>
       --dur-fast: 120ms;
       --dur: 200ms;
       --easing: cubic-bezier(.2,.7,.2,1);
+
+      /* Tint defaults (for readable overlays like yellow paper) */
+      --tint-h: 55;  /* hue */
+      --tint-s: 90;  /* saturation % */
+      --tint-l: 85;  /* lightness % */
+      --tint-alpha: 0; /* 0..0.9 */
     }
 
     @media (prefers-reduced-motion: reduce){
@@ -50,13 +52,24 @@ new_html = """<!DOCTYPE html>
     html, body{ height:100%; }
     body{
       margin:0; background:var(--bg); color:var(--text);
-      font: 400 16px/1.5 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto;
+      font: 400 16px/1.5 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
     }
 
     /* Locale-specific font stacks */
     .locale-ja{ font-family: "Noto Sans JP", "Hiragino Kaku Gothic ProN", "Meiryo", system-ui, sans-serif; }
     .locale-zh{ font-family: "Noto Sans SC", "PingFang SC", "Microsoft YaHei UI", system-ui, sans-serif; }
     .locale-es, .locale-fr, .locale-en{ font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, sans-serif; }
+
+    /* Visually hidden utility */
+    .sr-only{ position:absolute !important; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+
+    /* Skip link */
+    .skip-link{
+      position:absolute; left:8px; top:8px; z-index:9999;
+      background:var(--focus); color:#111; padding:.5rem .75rem; border-radius:8px;
+      transform: translateY(-150%); transition: transform var(--dur) var(--easing);
+    }
+    .skip-link:focus{ transform: translateY(0); outline:3px solid #000; }
 
     /* App frame */
     .cacx-app{ min-height:100%; }
@@ -77,11 +90,40 @@ new_html = """<!DOCTYPE html>
     .toggle:focus-visible{ outline:3px solid var(--focus); outline-offset:2px; }
     .toggle[disabled]{ opacity:.5; cursor:not-allowed; }
 
+    /* Range controls */
+    .range{
+      appearance:none; width:140px; height:6px; border-radius:999px;
+      background:color-mix(in lch, var(--panel) 75%, white 25%); outline:none;
+    }
+    .range::-webkit-slider-thumb{
+      appearance:none; width:18px; height:18px; border-radius:50%;
+      background:var(--accent);
+    }
+    .range::-moz-range-thumb{ width:18px; height:18px; border-radius:50%; background:var(--accent); border:none; }
+
     /* Communication style mapping */
     .cacx-app[data-tone="formal"]{ letter-spacing:.1px; }
     .cacx-app[data-tone="casual"]{ letter-spacing:0; }
     .cacx-app[data-density="compact"]{ --space-3:.75rem; --space-4:1rem; --space-5:1.25rem; }
     .cacx-app[data-density="cozy"]{ --space-3:1rem; --space-4:1.5rem; --space-5:2rem; }
+
+    /* Accessibility toggles */
+    .cacx-app[data-contrast="high"]{
+      --panel: var(--panel-strong);
+      --text: lch(98% 0 0);
+      --muted: lch(88% 2 250);
+      --accent: lch(88% 80 85);
+    }
+    .cacx-app[data-readable="on"] p,
+    .cacx-app[data-readable="on"] li{
+      line-height:1.8; word-spacing:.08em; letter-spacing:.02em;
+    }
+    .cacx-app[data-numbers="on"]{ font-variant-numeric: tabular-nums lining-nums; }
+    .cacx-app[data-targets="large"] .toggle,
+    .cacx-app[data-targets="large"] .primary,
+    .cacx-app[data-targets="large"] .tap{
+      min-inline-size:44px; min-block-size:44px;
+    }
 
     /* Layout grid */
     .grid{ display:grid; gap:var(--space-5); grid-template-columns:1fr; }
@@ -102,7 +144,7 @@ new_html = """<!DOCTYPE html>
     .fields{ list-style:none; margin:0; padding:0; display:grid; gap:.5rem; }
     .fields .label{ color:var(--muted); }
 
-    /* Container queries: widen field layout when the container is wide enough */
+    /* Container queries: widen field layout when container is wide enough */
     @container (min-width: 540px){
       .fields{ grid-template-columns: repeat(3, 1fr); }
       .fields li{ display:grid; gap:4px; }
@@ -124,9 +166,9 @@ new_html = """<!DOCTYPE html>
     .steps{ display:flex; gap:6px; flex-wrap:wrap; }
     .chip{ padding:.25rem .5rem; border-radius:999px; background:color-mix(in lch, var(--panel) 80%, white 20%); font: 500 12px/1.4 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, monospace; }
     .chip.current{ background: color-mix(in lch, var(--accent) 30%, black 70%); color: var(--text); }
-    .row{ display:flex; gap:8px; }
+    .row{ display:flex; gap:8px; flex-wrap:wrap; }
 
-    /* RTL helpers */
+    /* RTL helpers (explicit to avoid surprises) */
     .rtl .grid{ direction: rtl; }
     .rtl .toolbar{ direction: rtl; }
 
@@ -140,20 +182,45 @@ new_html = """<!DOCTYPE html>
     }
     .vwrite .fields{ gap: 1rem; } /* breathing room in vertical flow */
 
+    /* Tint overlay */
+    .tint { position:fixed; inset:0; pointer-events:none; mix-blend-mode:multiply; opacity:var(--tint-alpha);
+            background: hsl(var(--tint-h) var(--tint-s)% var(--tint-l)%); }
+
+    /* Dwell button demo */
+    .dwellable{
+      position:relative; border-radius:999px; padding: .75rem 1rem;
+      background: color-mix(in lch, var(--panel) 80%, white 20%);
+    }
+    .dwellable::after{
+      content:""; position:absolute; inset:-3px; border-radius:999px;
+      background: conic-gradient(var(--accent) calc(var(--p,0)*1%), transparent 0);
+      -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 0);
+              mask: radial-gradient(farthest-side, transparent calc(100% - 6px), #000 0);
+      transition: background var(--dur-fast) linear;
+      pointer-events:none;
+    }
+
     /* Footer */
     footer{ color:var(--muted); font-size:.9rem; }
     footer a{ color:inherit; }
   </style>
 </head>
 <body>
+  <a href="#content" class="skip-link">Skip to main content</a>
+
   <noscript>
     <div class="panel" style="max-width:50rem;margin:1rem auto;">
       <strong>JavaScript required.</strong> This demo adapts content, language, and layout via client-side logic.
     </div>
   </noscript>
 
-  <main id="app" class="cacx-app locale-en" data-tone="casual" data-verbosity="brief" data-density="cozy" data-emoji="minimal" dir="ltr">
-    <div class="shell" role="application" aria-label="CACX Kit Playground">
+  <!-- Live regions -->
+  <div id="sr-status" aria-live="polite" class="sr-only"></div>
+  <div id="sr-error" role="alert" class="sr-only"></div>
+
+  <main id="app" class="cacx-app locale-en" data-tone="casual" data-verbosity="brief" data-density="cozy" data-emoji="minimal" dir="ltr"
+        data-contrast="normal" data-readable="off" data-numbers="off" data-targets="normal">
+    <div id="content" class="shell" role="application" aria-label="CACX Kit Playground">
       <!-- Toolbar Controls -->
       <header class="toolbar" role="region" aria-label="Communication style controls">
         <div class="group" role="group" aria-label="Tone">
@@ -175,10 +242,10 @@ new_html = """<!DOCTYPE html>
         </div>
 
         <div class="group" role="group" aria-label="Emoji expressiveness">
-          <span class="label"><i class="fa-regular fa-face-smile"></i> <span data-i18n="emoji">Emoji</span></span>
-          <button class="toggle" data-set="emoji" data-value="off" aria-pressed="false"><i class="fa-regular fa-face-meh"></i> <span data-i18n="none">None</span></button>
-          <button class="toggle" data-set="emoji" data-value="minimal" aria-pressed="true"><i class="fa-regular fa-star"></i> <span data-i18n="mini">Mini</span></button>
-          <button class="toggle" data-set="emoji" data-value="full" aria-pressed="false"><i class="fa-solid fa-wand-magic-sparkles"></i> <span data-i18n="full">Full</span></button>
+          <span class="label"><i class="fa-solid fa-face-smile"></i> <span data-i18n="emoji">Emoji</span></span>
+          <button class="toggle" data-set="emoji" data-value="off" aria-pressed="false"><i class="fa-solid fa-ban"></i> <span data-i18n="none">None</span></button>
+          <button class="toggle" data-set="emoji" data-value="minimal" aria-pressed="true"><i class="fa-solid fa-star"></i> <span data-i18n="mini">Mini</span></button>
+          <button class="toggle" data-set="emoji" data-value="full" aria-pressed="false"><i class="fa-solid fa-wand-magic"></i> <span data-i18n="full">Full</span></button>
         </div>
 
         <div class="group" role="group" aria-label="Language">
@@ -201,6 +268,29 @@ new_html = """<!DOCTYPE html>
           <button class="toggle" data-set="writing" data-value="horizontal" aria-pressed="true"><i class="fa-solid fa-arrows-left-right"></i> <span data-i18n="horizontal">Horizontal</span></button>
           <button class="toggle" data-set="writing" data-value="vertical" aria-pressed="false"><i class="fa-solid fa-arrows-up-down"></i> <span data-i18n="vertical">Vertical</span></button>
         </div>
+
+        <!-- Accessibility Group -->
+        <div class="group" role="group" aria-label="Accessibility">
+          <span class="label"><i class="fa-solid fa-universal-access"></i> <span data-i18n="a11y">Accessibility</span></span>
+          <button class="toggle tap" data-set="readable" data-value="on" aria-pressed="false"><i class="fa-solid fa-font"></i> <span data-i18n="readable">Readable Text</span></button>
+          <button class="toggle tap" data-set="readable" data-value="off" aria-pressed="true"><i class="fa-solid fa-font"></i> <span data-i18n="readableOff">Default Text</span></button>
+          <button class="toggle tap" data-set="numbers" data-value="on" aria-pressed="false"><i class="fa-solid fa-hashtag"></i> <span data-i18n="numbersOn">Numbers-friendly</span></button>
+          <button class="toggle tap" data-set="numbers" data-value="off" aria-pressed="true"><i class="fa-solid fa-hashtag"></i> <span data-i18n="numbersOff">Numbers default</span></button>
+          <button class="toggle tap" data-set="contrast" data-value="high" aria-pressed="false"><i class="fa-solid fa-circle-half-stroke"></i> <span data-i18n="contrastHigh">High Contrast</span></button>
+          <button class="toggle tap" data-set="contrast" data-value="normal" aria-pressed="true"><i class="fa-solid fa-circle-half-stroke"></i> <span data-i18n="contrastNormal">Normal Contrast</span></button>
+          <button class="toggle tap" data-set="targets" data-value="large" aria-pressed="false"><i class="fa-solid fa-maximize"></i> <span data-i18n="targetsLarge">Larger Targets</span></button>
+          <button class="toggle tap" data-set="targets" data-value="normal" aria-pressed="true"><i class="fa-solid fa-maximize"></i> <span data-i18n="targetsNormal">Normal Targets</span></button>
+        </div>
+
+        <!-- Tint controls -->
+        <div class="group" role="group" aria-label="Reading tint">
+          <span class="label"><i class="fa-solid fa-highlighter"></i> <span data-i18n="tint">Tint</span></span>
+          <label class="label" for="tint-h" style="padding:0 .25rem;">H</label>
+          <input id="tint-h" class="range" type="range" min="0" max="360" step="1" aria-label="Tint hue">
+          <label class="label" for="tint-alpha" style="padding:0 .25rem;">A</label>
+          <input id="tint-alpha" class="range" type="range" min="0" max="0.9" step="0.01" aria-label="Tint opacity">
+          <button class="toggle tap" id="tint-reset"><i class="fa-solid fa-eraser"></i> <span data-i18n="reset">Reset</span></button>
+        </div>
       </header>
 
       <!-- Main grid -->
@@ -215,7 +305,7 @@ new_html = """<!DOCTYPE html>
               <li><span class="label" data-i18n="time_label">Time</span> <span class="value" id="time-value">10:30 AM</span></li>
               <li><span class="label" data-i18n="method_label">Method</span> <span class="value" id="method-value">Passkey Sign-in</span></li>
             </ul>
-            <button class="primary" id="confirm-btn">Confirm</button>
+            <button class="primary tap" id="confirm-btn">Confirm</button>
           </article>
         </section>
 
@@ -224,23 +314,47 @@ new_html = """<!DOCTYPE html>
           <div class="steps" id="steps" aria-live="polite"></div>
           <p id="step-content" aria-live="polite"></p>
           <div class="row">
-            <button class="toggle" id="back-btn"><i class="fa-solid fa-arrow-left"></i> <span data-i18n="back">Back</span></button>
-            <button class="toggle" id="next-btn"><span data-i18n="next">Next</span> <i class="fa-solid fa-arrow-right"></i></button>
+            <button class="toggle tap" id="back-btn"><i class="fa-solid fa-arrow-left"></i> <span data-i18n="back">Back</span></button>
+            <button class="toggle tap" id="next-btn"><span data-i18n="next">Next</span> <i class="fa-solid fa-arrow-right"></i></button>
+          </div>
+        </section>
+
+        <!-- Numbers demo -->
+        <section class="card" aria-label="Numbers demo">
+          <h2 style="margin:0" data-i18n="numbersDemo">Numbers demo</h2>
+          <p data-i18n="numbersDesc">Formatted values respect locale and the Numbers-friendly mode uses tabular figures to align decimals.</p>
+          <ul class="fields">
+            <li><span class="label" data-i18n="price">Price</span> <span class="value" id="num-price"></span></li>
+            <li><span class="label" data-i18n="qty">Quantity</span> <span class="value" id="num-qty"></span></li>
+            <li><span class="label" data-i18n="total">Total</span> <span class="value" id="num-total"></span></li>
+          </ul>
+        </section>
+
+        <!-- Dwell-to-activate demo -->
+        <section class="card" aria-label="Dwell activation demo">
+          <h2 style="margin:0" data-i18n="dwellDemo">Dwell to activate</h2>
+          <p data-i18n="dwellDesc">Hover and hold your pointer over the button. A ring fills; when complete, the button activates—useful for eye-tracking users.</p>
+          <div class="row">
+            <button class="dwellable tap" id="dwell-btn"><i class="fa-solid fa-hand-pointer"></i> <span data-i18n="dwellAction">Open dialog</span></button>
+            <label class="label" for="dwell-ms" style="align-self:center;"><i class="fa-solid fa-hourglass-half"></i> <span data-i18n="dwellTime">Dwell (ms)</span></label>
+            <input id="dwell-ms" class="range" type="range" min="400" max="2000" step="50" value="900" aria-label="Dwell time in milliseconds">
           </div>
         </section>
       </div>
 
-      <footer>
+      <footer role="contentinfo">
         <p>
-          CACX Kit v0.2 • EN/ES/FR/JA/ZH • Optional vertical writing for JA/ZH • High contrast • Strong focus • RTL/vertical aware • Localized numerals where applicable.
+          CACX Kit v0.3 • EN/ES/FR/JA/ZH • Optional vertical writing (JA/ZH) • A11y toggles: Readable Text, Numbers-friendly, High Contrast, Larger Targets • Tint overlay • Skip link • Live regions • Dwell demo.
         </p>
       </footer>
     </div>
   </main>
 
+  <div class="tint" id="tint-layer" aria-hidden="true"></div>
+
   <script>
     // =====================
-    // i18n microcopy + numerals
+    // i18n microcopy
     // =====================
     const COPY = {
       // UI chrome
@@ -248,7 +362,7 @@ new_html = """<!DOCTYPE html>
       casual: { en:"Casual", es:"Informal", fr:"Décontracté", ja:"カジュアル", zh:"随意" },
       formal: { en:"Formal", es:"Formal", fr:"Formel", ja:"フォーマル", zh:"正式" },
       verbosity: { en:"Verbosity", es:"Nivel de detalle", fr:"Niveau de détail", ja:"詳細度", zh:"详细程度" },
-      brief: { en:"Breve", es:"Breve", fr:"Bref", ja:"簡潔", zh:"简洁" },
+      brief: { en:"Brief", es:"Breve", fr:"Bref", ja:"簡潔", zh:"简洁" },
       detailed: { en:"Detailed", es:"Detallado", fr:"Détaillé", ja:"詳細", zh:"详细" },
       density: { en:"Density", es:"Densidad", fr:"Densité", ja:"密度", zh:"密度" },
       cozy: { en:"Cozy", es:"Cómodo", fr:"Aéré", ja:"ゆったり", zh:"舒适" },
@@ -264,42 +378,61 @@ new_html = """<!DOCTYPE html>
       writing: { en:"Writing", es:"Escritura", fr:"Écriture", ja:"書字方向", zh:"书写方向" },
       horizontal: { en:"Horizontal", es:"Horizontal", fr:"Horizontale", ja:"横書き", zh:"横排" },
       vertical: { en:"Vertical", es:"Vertical", fr:"Verticale", ja:"縦書き", zh:"竖排" },
+      a11y: { en:"Accessibility", es:"Accesibilidad", fr:"Accessibilité", ja:"アクセシビリティ", zh:"无障碍" },
+      readable: { en:"Readable Text", es:"Texto legible", fr:"Texte lisible", ja:"読みやすい文字", zh:"易读文本" },
+      readableOff: { en:"Default Text", es:"Texto por defecto", fr:"Texte par défaut", ja:"既定の文字", zh:"默认文本" },
+      numbersOn: { en:"Numbers-friendly", es:"Números accesibles", fr:"Nombres lisibles", ja:"数字を見やすく", zh:"数字友好" },
+      numbersOff: { en:"Numbers default", es:"Números por defecto", fr:"Nombres par défaut", ja:"通常の数字", zh:"默认数字" },
+      contrastHigh: { en:"High Contrast", es:"Alto contraste", fr:"Haut contraste", ja:"ハイコントラスト", zh:"高对比度" },
+      contrastNormal: { en:"Normal Contrast", es:"Contraste normal", fr:"Contraste normal", ja:"標準コントラスト", zh:"标准对比度" },
+      targetsLarge: { en:"Larger Targets", es:"Objetivos grandes", fr:"Cibles plus grandes", ja:"大きいターゲット", zh:"更大目标" },
+      targetsNormal: { en:"Normal Targets", es:"Objetivos normales", fr:"Cibles normales", ja:"標準ターゲット", zh:"标准目标" },
+      tint: { en:"Tint", es:"Tinte", fr:"Teinte", ja:"色のフィルター", zh:"色彩遮罩" },
+      reset: { en:"Reset", es:"Restablecer", fr:"Réinitialiser", ja:"リセット", zh:"重置" },
 
       // Content
-      title: {
-        en: "Booking summary",
-        es: "Resumen de la reserva",
-        fr: "Récapitulatif de réservation",
-        ja: "予約概要",
-        zh: "预订摘要"
-      },
-      hintBrief: {
-        en: "Tap to confirm.",
-        es: "Toca para confirmar.",
-        fr: "Appuyez pour confirmer.",
-        ja: "タップして確認",
-        zh: "点按以确认。"
-      },
+      title: { en:"Booking summary", es:"Resumen de la reserva", fr:"Récapitulatif de réservation", ja:"予約概要", zh:"预订摘要" },
+      hintBrief: { en:"Tap to confirm.", es:"Toca para confirmar.", fr:"Appuyez pour confirmer.", ja:"タップして確認", zh:"点按以确认。" },
       hintDetailed: {
-        en: "Review your details, then confirm. You can edit any field before submission.",
-        es: "Revisa tus datos y confirma. Puedes editar cualquier campo antes de enviar.",
-        fr: "Vérifiez vos informations puis confirmez. Vous pouvez modifier n'importe quel champ avant l'envoi.",
-        ja: "詳細を確認してから確定してください。送信前に各項目を編集できます。",
-        zh: "请先检查详情，然后确认。提交前可修改任何字段。"
+        en:"Review your details, then confirm. You can edit any field before submission.",
+        es:"Revisa tus datos y confirma. Puedes editar cualquier campo antes de enviar.",
+        fr:"Vérifiez vos informations puis confirmez. Vous pouvez modifier n'importe quel champ avant l'envoi.",
+        ja:"詳細を確認してから確定してください。送信前に各項目を編集できます。",
+        zh:"请先检查详情，然后确认。提交前可修改任何字段。"
       },
       date: { en:"Date", es:"Fecha", fr:"Date", ja:"日付", zh:"日期" },
       time: { en:"Time", es:"Hora", fr:"Heure", ja:"時刻", zh:"时间" },
       method: { en:"Method", es:"Método", fr:"Méthode", ja:"方法", zh:"方式" },
       passkey: {
-        en:"Passkey Sign-in",
-        es:"Inicio de sesión con llave de acceso",
-        fr:"Connexion par clé d'accès",
-        ja:"パスキーでサインイン",
-        zh:"使用通行密钥登录"
+        en:"Passkey Sign-in", es:"Inicio de sesión con llave de acceso", fr:"Connexion par clé d'accès",
+        ja:"パスキーでサインイン", zh:"使用通行密钥登录"
       },
       confirm: { en:"Confirm", es:"Confirmar", fr:"Confirmer", ja:"確定", zh:"确认" },
       next: { en:"Next", es:"Siguiente", fr:"Suivant", ja:"次へ", zh:"下一步" },
-      back: { en:"Back", es:"Atrás", fr:"Retour", ja:"戻る", zh:"返回" }
+      back: { en:"Back", es:"Atrás", fr:"Retour", ja:"戻る", zh:"返回" },
+
+      numbersDemo: { en:"Numbers demo", es:"Demostración de números", fr:"Démo des nombres", ja:"数字のデモ", zh:"数字演示" },
+      numbersDesc: {
+        en:"Formatted values respect locale and the Numbers-friendly mode uses tabular figures to align decimals.",
+        es:"Los valores formateados respetan el idioma y el modo de números accesibles usa cifras tabulares para alinear decimales.",
+        fr:"Les valeurs formatées respectent la locale; le mode nombres lisibles utilise des chiffres tabulaires pour aligner les décimales.",
+        ja:"表示はロケールに従い、「数字を見やすく」では桁を揃えるタブラー数字を使用します。",
+        zh:"格式化遵循本地化；“数字友好”模式使用等宽数字以对齐小数。"
+      },
+      price: { en:"Price", es:"Precio", fr:"Prix", ja:"価格", zh:"价格" },
+      qty: { en:"Quantity", es:"Cantidad", fr:"Quantité", ja:"数量", zh:"数量" },
+      total: { en:"Total", es:"Total", fr:"Total", ja:"合計", zh:"总计" },
+
+      dwellDemo: { en:"Dwell to activate", es:"Permanecer para activar", fr:"Maintenir pour activer", ja:"ホバーで実行", zh:"停留激活" },
+      dwellDesc: {
+        en:"Hover and hold your pointer over the button. A ring fills; when complete, the button activates—useful for eye-tracking users.",
+        es:"Pasa el cursor y mantenlo sobre el botón. Un anillo se completa; al terminar, el botón se activa—útil para control ocular.",
+        fr:"Survolez et maintenez le pointeur sur le bouton. Un anneau se remplit; une fois terminé, le bouton s'active—utile pour le suivi oculaire.",
+        ja:"ボタンの上でポインターをホールドするとリングが満ち、完了で実行します。視線入力に便利。",
+        zh:"将指针悬停并停留在按钮上。指环填充后自动触发——适用于眼动控制。"
+      },
+      dwellAction: { en:"Open dialog", es:"Abrir diálogo", fr:"Ouvrir la boîte", ja:"ダイアログを開く", zh:"打开对话框" },
+      dwellTime: { en:"Dwell (ms)", es:"Espera (ms)", fr:"Maintien (ms)", ja:"ホールド (ms)", zh:"停留时间 (毫秒)" }
     };
 
     const LOCALES = {
@@ -310,18 +443,19 @@ new_html = """<!DOCTYPE html>
       zh: { dir: "ltr", numerals: "latn", label: "中文", class: "locale-zh", allowVertical: true }
     };
 
-    function toArabicIndic(str){ return String(str).replace(/[0-9]/g, d => "٠١٢٣٤٥٦٧٨٩"[Number(d)]); } // not used here but kept as example
-    function fmtNum(n, numerals){ return String(n); }
-
     // Fixed demo date/time
     const demoDate = new Date(2025, 8, 12, 10, 30); // Sept 12, 2025 10:30
 
     // =====================
     // State & persistence
     // =====================
+    const srStatus = document.getElementById("sr-status");
+    const srError = document.getElementById("sr-error");
     const app = document.getElementById("app");
     const toggles = Array.from(document.querySelectorAll(".toggle"));
     const writingGroup = document.getElementById("writing-group");
+    const tintH = document.getElementById("tint-h");
+    const tintA = document.getElementById("tint-alpha");
 
     const state = {
       tone: getPref("tone", "casual"),
@@ -330,7 +464,13 @@ new_html = """<!DOCTYPE html>
       emoji: getPref("emoji", "minimal"),
       locale: getPref("locale", "en"),
       guided: getPref("guided", "off"),
-      writing: getPref("writing", "horizontal")
+      writing: getPref("writing", "horizontal"),
+      contrast: getPref("contrast", "normal"),
+      readable: getPref("readable", "off"),
+      numbers: getPref("numbers", "off"),
+      targets: getPref("targets", "normal"),
+      tintH: Number(getPref("tint-h", "55")),
+      tintA: Number(getPref("tint-alpha", "0"))
     };
 
     applyStateToDOM();
@@ -342,56 +482,93 @@ new_html = """<!DOCTYPE html>
         const value = btn.dataset.value;
 
         if(key === "guided"){
-          setPref("guided", value);
-          state.guided = value;
-          reflectPressed("guided", value);
-          updateGuidedVisibility();
+          setPref("guided", value); state.guided = value;
+          reflectPressed("guided", value); updateGuidedVisibility(); announce(t("guided") + ": " + (value==="on"?t("on"):t("off")));
           return;
         }
 
         if(key === "writing"){
-          setPref("writing", value);
-          state.writing = value;
-          reflectPressed("writing", value);
-          applyWritingMode();
+          setPref("writing", value); state.writing = value;
+          reflectPressed("writing", value); applyWritingMode(); announce(t("writing")+": "+t(value));
           return;
         }
 
         if(key === "locale"){
-          setPref("locale", value);
-          state.locale = value;
-          reflectPressed("locale", value);
-          applyLocale();
-          updateUI();
+          setPref("locale", value); state.locale = value;
+          reflectPressed("locale", value); applyLocale(); updateUI(); announce(t("language")+": "+LOCALES[value].label);
           return;
         }
 
-        setPref(key, value);
-        state[key] = value;
-        reflectPressed(key, value);
-        updateUI();
+        if(key === "contrast"){
+          setPref("contrast", value); state.contrast = value;
+          reflectPressed("contrast", value); applyA11yAttributes(); announce(t(value==="high"?"contrastHigh":"contrastNormal"));
+          return;
+        }
+
+        if(key === "readable"){
+          setPref("readable", value); state.readable = value;
+          reflectPressed("readable", value); applyA11yAttributes(); announce(t("readable") + ": " + (value==="on"?t("on"):t("off")));
+          return;
+        }
+
+        if(key === "numbers"){
+          setPref("numbers", value); state.numbers = value;
+          reflectPressed("numbers", value); applyA11yAttributes(); updateNumbersDemo(); announce(t(value==="on"?"numbersOn":"numbersOff"));
+          return;
+        }
+
+        if(key === "targets"){
+          setPref("targets", value); state.targets = value;
+          reflectPressed("targets", value); applyA11yAttributes(); announce(t(value==="large"?"targetsLarge":"targetsNormal"));
+          return;
+        }
+
+        // default: tone/verbosity/density/emoji
+        setPref(key, value); state[key] = value;
+        reflectPressed(key, value); updateUI();
       });
     });
 
+    // Tint sliders
+    tintH.value = state.tintH;
+    tintA.value = state.tintA;
+    applyTint();
+    tintH.addEventListener("input", () => { state.tintH = Number(tintH.value); setPref("tint-h", state.tintH); applyTint(); });
+    tintA.addEventListener("input", () => { state.tintA = Number(tintA.value); setPref("tint-alpha", state.tintA); applyTint(); });
+    document.getElementById("tint-reset").addEventListener("click", () => {
+      state.tintH = 55; state.tintA = 0; tintH.value = 55; tintA.value = 0;
+      setPref("tint-h",55); setPref("tint-alpha",0); applyTint();
+      announce(t("tint") + " " + t("reset"));
+    });
+
     // Initialize pressed states & locale
-    ["tone","verbosity","density","emoji","locale","guided","writing"].forEach(k => reflectPressed(k, state[k]));
+    ["tone","verbosity","density","emoji","locale","guided","writing","contrast","readable","numbers","targets"].forEach(k => reflectPressed(k, state[k]));
     applyLocale();
     applyWritingMode();
+    applyA11yAttributes();
     updateGuidedVisibility();
     updateUI();
+    updateNumbersDemo();
 
     // =====================
     // UI update pipeline
     // =====================
-    function t(key){
-      return COPY[key]?.[state.locale] ?? key;
-    }
+    function t(key){ return COPY[key]?.[state.locale] ?? key; }
+    function announce(msg){ srStatus.textContent = msg; }
+    function errorAnnounce(msg){ srError.textContent = msg; }
 
     function applyStateToDOM(){
       app.dataset.tone = state.tone;
       app.dataset.verbosity = state.verbosity;
       app.dataset.density = state.density;
       app.dataset.emoji = state.emoji;
+    }
+
+    function applyA11yAttributes(){
+      app.dataset.contrast = state.contrast;
+      app.dataset.readable = state.readable;
+      app.dataset.numbers = state.numbers;
+      app.dataset.targets = state.targets;
     }
 
     function applyLocale(){
@@ -425,6 +602,11 @@ new_html = """<!DOCTYPE html>
       }
     }
 
+    function applyTint(){
+      document.documentElement.style.setProperty("--tint-h", state.tintH);
+      document.documentElement.style.setProperty("--tint-alpha", state.tintA);
+    }
+
     function updateUI(){
       applyStateToDOM();
 
@@ -438,20 +620,14 @@ new_html = """<!DOCTYPE html>
       // Microcopy with verbosity + emoji
       const micro = document.getElementById("microcopy");
       micro.textContent = state.verbosity === "detailed" ? t("hintDetailed") : t("hintBrief");
-      if(state.emoji !== "off"){
-        micro.textContent += state.emoji === "full" ? " ✨✅" : " ✨";
-      }
+      if(state.emoji !== "off"){ micro.textContent += state.emoji === "full" ? " ✨✅" : " ✨"; }
 
-      // Date/time formatting per locale
+      // Dates/times (per locale)
       const dateLabel = demoDate.toLocaleDateString(state.locale, { year:"numeric", month:"short", day:"numeric" });
       const timeLabel = demoDate.toLocaleTimeString(state.locale, { hour:"numeric", minute:"2-digit" });
       document.getElementById("date-value").textContent = dateLabel;
       document.getElementById("time-value").textContent = timeLabel;
       document.getElementById("method-value").textContent = t("passkey");
-
-      // Stepper buttons
-      document.querySelectorAll('[data-i18n="next"]').forEach(n => n.textContent = t("next"));
-      document.querySelectorAll('[data-i18n="back"]').forEach(n => n.textContent = t("back"));
 
       renderSteps();
     }
@@ -481,9 +657,7 @@ new_html = """<!DOCTYPE html>
     });
 
     function renderSteps(){
-      const labelStep = {
-        en: "Step ", es: "Paso ", fr:"Étape ", ja:"ステップ ", zh:"步骤 "
-      }[state.locale] || "Step ";
+      const labelStep = { en:"Step ", es:"Paso ", fr:"Étape ", ja:"ステップ ", zh:"步骤 " }[state.locale] || "Step ";
 
       // Chips
       stepsEl.innerHTML = "";
@@ -533,6 +707,29 @@ new_html = """<!DOCTYPE html>
     }
 
     // =====================
+    // Numbers demo
+    // =====================
+    function updateNumbersDemo(){
+      const price = 1234567.89;
+      const qty = 42;
+      const total = price * qty;
+      const nf = new Intl.NumberFormat(state.locale, { style:"currency", currency: currencyFor(state.locale) });
+      const ni = new Intl.NumberFormat(state.locale, { maximumFractionDigits: 0, useGrouping:true });
+      document.getElementById("num-price").textContent = nf.format(price);
+      document.getElementById("num-qty").textContent = ni.format(qty);
+      document.getElementById("num-total").textContent = nf.format(total);
+    }
+    function currencyFor(locale){
+      switch(locale){
+        case "es": return "EUR";
+        case "fr": return "EUR";
+        case "ja": return "JPY";
+        case "zh": return "CNY";
+        default: return "USD";
+      }
+    }
+
+    // =====================
     // localStorage helpers
     // =====================
     function getPref(key, fallback){
@@ -552,12 +749,38 @@ new_html = """<!DOCTYPE html>
 
     // Demo confirm button
     document.getElementById("confirm-btn").addEventListener("click", () => {
-      alert(t("confirm"));
+      alert(COPY["confirm"][state.locale] || "Confirm");
     });
+
+    // =====================
+    // Dwell-to-activate
+    // =====================
+    const dwellBtn = document.getElementById("dwell-btn");
+    const dwellRange = document.getElementById("dwell-ms");
+    let dwellTimer = null, dwellStart = 0, dwellMs = Number(dwellRange.value);
+
+    dwellRange.addEventListener("input", ()=> {
+      dwellMs = Number(dwellRange.value);
+      announce(COPY["dwellTime"][state.locale]+": "+dwellMs+"ms");
+    });
+
+    function resetDwell(){
+      dwellBtn.style.setProperty("--p", 0);
+      if(dwellTimer){ cancelAnimationFrame(dwellTimer); dwellTimer = null; }
+    }
+
+    dwellBtn.addEventListener("pointerenter", ()=>{
+      resetDwell();
+      dwellStart = performance.now();
+      const tick = (now)=>{
+        const p = Math.min(1, (now - dwellStart) / dwellMs);
+        dwellBtn.style.setProperty("--p", p*100);
+        if(p < 1){ dwellTimer = requestAnimationFrame(tick); }
+        else{ resetDwell(); alert(COPY["dwellAction"][state.locale] || "Open"); }
+      };
+      dwellTimer = requestAnimationFrame(tick);
+    });
+    dwellBtn.addEventListener("pointerleave", resetDwell);
   </script>
 </body>
 </html>
-"""
-
-index_path.write_text(new_html, encoding="utf-8")
-
